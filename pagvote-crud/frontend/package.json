@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "nuxt": "4.6.3"
+  },
+  "name": "pagvote-crud-frontend",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview"
+  },
+  "type": "module"
+}
