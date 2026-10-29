@@ -35,8 +35,19 @@ pub async fn create_contestant(
     if let Some(message) = input.validate() {
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse::new(&message))));
     }
+    if state.number_in_use(input.contestant_number, None) {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(ErrorResponse::new("contestantNumber already in use")),
+        ));
+    }
     let (name, bio) = input.cleaned();
-    let contestant = state.create(name, input.contestant_number, bio);
+    let contestant = state.create(
+        name,
+        input.contestant_number,
+        bio,
+        input.status_or_default(),
+    );
     Ok((StatusCode::CREATED, Json(contestant)))
 }
 
@@ -48,8 +59,28 @@ pub async fn update_contestant(
     if let Some(message) = input.validate() {
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse::new(&message))));
     }
+    // Existence first, so updating a missing id is always 404,
+    // even if the requested number is already used by someone else.
+    if state.get(id).is_none() {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse::new("Contestant not found")),
+        ));
+    }
+    if state.number_in_use(input.contestant_number, Some(id)) {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(ErrorResponse::new("contestantNumber already in use")),
+        ));
+    }
     let (name, bio) = input.cleaned();
-    match state.update(id, name, input.contestant_number, bio) {
+    match state.update(
+        id,
+        name,
+        input.contestant_number,
+        bio,
+        input.status_or_default(),
+    ) {
         Some(contestant) => Ok(Json(contestant)),
         None => Err((
             StatusCode::NOT_FOUND,

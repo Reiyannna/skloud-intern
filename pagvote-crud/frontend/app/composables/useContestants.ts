@@ -1,16 +1,26 @@
 // All backend calls live here, so the page never hard-codes a URL
 // and the walkthrough can point at one file for "the API layer".
+//
+// Naming decision, chosen 2026-10-29 after review:
+// Rust fields are snake_case, the JSON wire format and all TypeScript
+// code are camelCase. The backend maps between them with
+// `#[serde(rename_all = "camelCase")]`, so this file uses
+// `contestantNumber`, never `contestant_number`.
+export type ContestantStatus = 'In-Review' | 'Approved'
+
 export interface Contestant {
   id: number
   name: string
-  contestant_number: number
+  contestantNumber: number
   bio: string
+  status: ContestantStatus
 }
 
 export interface ContestantInput {
   name: string
-  contestant_number: number
+  contestantNumber: number
   bio: string
+  status: ContestantStatus
 }
 
 export function useContestants() {

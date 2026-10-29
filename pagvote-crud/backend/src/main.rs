@@ -17,13 +17,16 @@ use tower_http::cors::{AllowHeaders, AllowOrigin, CorsLayer};
 async fn main() {
     let state: SharedState = Arc::new(AppState::new());
 
-    // Local demo only: allow just the Nuxt dev server origin.
+    // Local demo only: allow just the Nuxt dev server, whether it is
+    // opened as localhost or as 127.0.0.1 — both are the same dev server,
+    // and allowing only one of them breaks the other for no benefit.
     // This is intentionally NOT permissive — a deployed API would
     // not open itself to every origin.
     let cors = CorsLayer::new()
-        .allow_origin(AllowOrigin::exact(HeaderValue::from_static(
-            "http://localhost:3000",
-        )))
+        .allow_origin(AllowOrigin::list([
+            HeaderValue::from_static("http://localhost:3000"),
+            HeaderValue::from_static("http://127.0.0.1:3000"),
+        ]))
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(AllowHeaders::list([axum::http::header::CONTENT_TYPE]));
 

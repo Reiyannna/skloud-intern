@@ -1,84 +1,44 @@
-# Pagvote CRUD — Onboarding Demo (local only)
+# Pagvote CRUD — Onboarding Demo
 
 Simple full-stack CRUD: Rust + Axum backend, Vue + Nuxt frontend.
-One entity, Contestants. No database, no auth, no GitHub push — local demo only.
+One entity, Contestants. No database, no auth.
 
 ## What it does
 
 - Create, list, read, update, and delete contestants
-- Backend validates: name must not be blank, contestant_number must be at least 1
+- Contestant fields: `id`, `name`, `contestantNumber`, `bio`, `status`
+- Status is only `In-Review` or `Approved` — anything else is rejected
+- Backend validates: name must not be blank and at most 100 characters,
+  `contestantNumber` must be at least 1, bio at most 500 characters
+- `contestantNumber` must be unique: creating or updating to a used number
+  returns 409 `{"error": "contestantNumber already in use"}`
 - Missing id returns 404 JSON: `{"error": "Contestant not found"}`
+- Updating a missing id is always 404, even if the requested number is used
 - Data is in-memory: restarting the backend restores the 3 seed contestants
-  (Maya Reyes #1, Liam Torres #2, Sofia Cruz #3)
+  (Maya Reyes #1 In-Review, Liam Torres #2 Approved, Sofia Cruz #3 In-Review)
+- Frontend: contestants in a scrollable card (no page scroll), an
+  Add-contestant button that shows the form while the list stays visible,
+  and All / In-Review / Approved filters
 
-## Run it (two terminals, from this folder)
+## Naming decision
 
-Terminal 1 — backend (port 3001):
-```
-cd backend
-cargo run
-```
-Check: `http://127.0.0.1:3001/health` should return `{"status":"ok"}`
+Rust fields are snake_case (Rust convention). The JSON wire format and
+all TypeScript code are camelCase (JS/TS convention). The backend maps
+between them with `#[serde(rename_all = "camelCase")]` on the models,
+so Rust `contestant_number` becomes JSON `contestantNumber`.
 
-Terminal 2 — frontend (port 3000):
-```
-cd frontend
-npm install
-npm run dev
-```
-Open: http://localhost:3000
+## Prerequisites — install these before you run anything
 
-Stop either server with Ctrl+C.
+- Rust + Cargo (install via rustup: https://rustup.rs)
+- Node.js 22.21+ or 24.11+ — required by Nuxt 4.6.3. Node 20 is not enough.
+  Install the current LTS from https://nodejs.org
+- On Windows only: Visual Studio Build Tools with the
+  "Desktop development with C++" workload, installed before Rust.
+  Without it, `cargo run` fails at linking with a `link.exe` error.
+  You do not need the full Visual Studio IDE — VS Code is enough to code in.
+- Git, and a terminal in VS Code (Ctrl + `)
 
-## API
+## Run it (two terminals, starting in this folder)
 
-| Method | Path | Success |
-| --- | --- | --- |
-| GET | /health | 200 |
-| GET | /api/contestants | 200, list sorted by id |
-| GET | /api/contestants/{id} | 200, or 404 |
-| POST | /api/contestants | 201 |
-| PUT | /api/contestants/{id} | 200, or 404 |
-| DELETE | /api/contestants/{id} | 204, or 404 |
-
-Example:
-```
-curl http://127.0.0.1:3001/api/contestants
-curl -X POST http://127.0.0.1:3001/api/contestants \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test Name","contestant_number":9,"bio":"Demo"}'
-```
-
-## Architecture walkthrough (for the presentation)
-
-Backend (`backend/src/`):
-- `main.rs` — binds 127.0.0.1:3001, registers routes, applies CORS.
-  CORS allows only http://localhost:3000, only GET/POST/PUT/DELETE,
-  only the Content-Type header. It is intentionally not permissive.
-- `models.rs` — `Contestant`, `ContestantInput`, validation, error shape.
-- `store.rs` — in-memory `HashMap` + atomic id counter, behind `RwLock`.
-  This is the one file a database would replace later.
-- `handlers.rs` — one handler per endpoint, returning the status codes above.
-
-Frontend (`frontend/app/`):
-- `pages/index.vue` — list, create form, edit form, delete with confirm.
-  No business logic about URLs lives here.
-- `composables/useContestants.ts` — all 4 API calls in one place.
-  The page calls `list/create/update/remove` and never builds a URL itself.
-- `nuxt.config.ts` — `runtimeConfig.public.apiBase = http://localhost:3001`.
-
-Request flow: page -> composable ($fetch) -> Axum route -> handler ->
-validation -> store -> JSON response -> page refreshes the list.
-
-## Known limits (say these out loud in the demo)
-
-- In-memory only: data is lost on backend restart.
-- No auth, no pagination, no database — all deliberate for a simple demo.
-- CORS is local-only; a deployed version would need a real origin list,
-  auth, and a database layer in place of `store.rs`.
-- Plain CSS, no Tailwind, to keep the Nuxt install minimal and reliable.
-
-## Versions verified for this build
-
-- Nuxt 4.6.3, Axum 0.8.9, tokio 1.54.1, serde 1.0.229,
-  serde_json 1.0.154, tower-http 0.7.1, Rust 1.99.1, Node 24.22.1
+This project lives in a subfolder when cloned as part of a larger repo.
+From the repo root, first go into this project folder:
