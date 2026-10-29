@@ -38,7 +38,7 @@ pub async fn create_contestant(
     if state.number_in_use(input.contestant_number, None) {
         return Err((
             StatusCode::CONFLICT,
-            Json(ErrorResponse::new("contestantNumber already in use")),
+            Json(ErrorResponse::new("Contestant Number already in use")),
         ));
     }
     let (name, bio) = input.cleaned();

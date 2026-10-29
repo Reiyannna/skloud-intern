@@ -11,7 +11,7 @@ One entity, Contestants. No database, no auth.
 - Backend validates: name must not be blank and at most 100 characters,
   `contestantNumber` must be at least 1, bio at most 500 characters
 - `contestantNumber` must be unique: creating or updating to a used number
-  returns 409 `{"error": "contestantNumber already in use"}`
+  returns 409 `{"error": "Contestant Number already in use"}`
 - Missing id returns 404 JSON: `{"error": "Contestant not found"}`
 - Updating a missing id is always 404, even if the requested number is used
 - Data is in-memory: restarting the backend restores the 3 seed contestants

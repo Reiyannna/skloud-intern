@@ -1,71 +1,92 @@
 <template>
-  <main class="wrap">
-    <header class="header">
-      <h1>Contestants</h1>
-      <p class="sub">Simple CRUD demo — Rust + Axum backend, Nuxt frontend. Data is in-memory, so restarting the backend restores the 3 seed contestants.</p>
-    </header>
+  <div>
+    <main class="wrap">
+      <header class="header">
+        <h1>Contestants</h1>
+        <p class="sub">Simple CRUD demo — Rust + Axum backend, Nuxt frontend. Data is in-memory, so restarting the backend restores the 3 seed contestants.</p>
+      </header>
 
-    <p v-if="error" class="error">{{ error }}</p>
-
-    <div class="controls">
-      <button @click="toggleForm">{{ showForm ? 'Hide form' : editing ? 'Edit contestant' : 'Add contestant' }}</button>
-      <div class="filters" role="group" aria-label="Filter by status">
-        <button :class="{ active: filter === 'All' }" @click="filter = 'All'">All</button>
-        <button :class="{ active: filter === 'In-Review' }" @click="filter = 'In-Review'">In-Review</button>
-        <button :class="{ active: filter === 'Approved' }" @click="filter = 'Approved'">Approved</button>
-      </div>
-      <span class="count">{{ filteredContestants.length }} of {{ contestants.length }} shown</span>
-    </div>
-
-    <section v-if="showForm" class="card form-card">
-      <h2>{{ editing ? 'Edit contestant' : 'Add contestant' }}</h2>
-      <form @submit.prevent="onSubmit">
-        <label>
-          Name
-          <input v-model="form.name" required placeholder="e.g. Maya Reyes" maxlength="100" />
-        </label>
-        <label>
-          Contestant number
-          <input v-model.number="form.contestantNumber" type="number" min="1" required />
-        </label>
-        <label>
-          Status
-          <select v-model="form.status">
-            <option value="In-Review">In-Review</option>
-            <option value="Approved">Approved</option>
-          </select>
-        </label>
-        <label>
-          Bio
-          <textarea v-model="form.bio" rows="2" placeholder="Optional short bio" maxlength="500" />
-        </label>
-        <div class="row">
-          <button type="submit" :disabled="saving">{{ saving ? 'Saving…' : editing ? 'Save changes' : 'Create' }}</button>
-          <button type="button" class="secondary" @click="cancelForm">Cancel</button>
+      <div class="controls">
+        <button @click="toggleForm">{{ showForm ? 'Hide form' : editing ? 'Edit contestant' : 'Add contestant' }}</button>
+        <div class="filters" role="group" aria-label="Filter by status">
+          <button :class="{ active: filter === 'All' }" @click="filter = 'All'">All</button>
+          <button :class="{ active: filter === 'In-Review' }" @click="filter = 'In-Review'">In-Review</button>
+          <button :class="{ active: filter === 'Approved' }" @click="filter = 'Approved'">Approved</button>
         </div>
-      </form>
+        <span class="count">{{ filteredContestants.length }} of {{ contestants.length }} shown</span>
+      </div>
+
+      <section class="card list-card">
+        <h2>Contestants</h2>
+        <p v-if="loading">Loading…</p>
+        <ul class="list">
+          <li v-for="c in filteredContestants" :key="c.id" class="item">
+            <div class="item-head">
+              <strong>#{{ c.contestantNumber }} — {{ c.name }}</strong>
+              <span class="badge" :class="c.status === 'Approved' ? 'approved' : 'review'">{{ c.status }}</span>
+            </div>
+            <p>{{ c.bio || 'No bio yet.' }}</p>
+            <small>ID {{ c.id }}</small>
+            <div class="row">
+              <button @click="startEdit(c)">Edit</button>
+              <button class="danger" @click="onDelete(c)">Delete</button>
+            </div>
+          </li>
+        </ul>
+        <p v-if="!loading && filteredContestants.length === 0">No contestants match this filter.</p>
+      </section>
+    </main>
+
+    <!-- Create / Edit prompt card: a centered modal over the list, so the
+         contestants stay visible behind it. It does not close on backdrop
+         click, so a stray click cannot discard what was typed — only
+         Cancel, Hide form, or a successful save closes it. -->
+    <section v-if="showForm" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Contestant form">
+      <div class="card modal-card">
+        <h2>{{ editing ? 'Edit contestant' : 'Add contestant' }}</h2>
+        <form @submit.prevent="onSubmit">
+          <label>
+            Name
+            <input v-model="form.name" required placeholder="e.g. Maya Reyes" maxlength="100" />
+          </label>
+          <label>
+            Contestant number
+            <input v-model.number="form.contestantNumber" type="number" min="1" required />
+          </label>
+          <label>
+            Status
+            <select v-model="form.status">
+              <option value="In-Review">In-Review</option>
+              <option value="Approved">Approved</option>
+            </select>
+          </label>
+          <label>
+            Bio
+            <textarea v-model="form.bio" rows="2" placeholder="Optional short bio" maxlength="500" />
+          </label>
+          <div class="row">
+            <button type="submit" :disabled="saving">{{ saving ? 'Saving…' : editing ? 'Save changes' : 'Create' }}</button>
+            <button type="button" class="secondary" @click="cancelForm">Cancel</button>
+          </div>
+        </form>
+      </div>
     </section>
 
-    <section class="card list-card">
-      <h2>Contestants</h2>
-      <p v-if="loading">Loading…</p>
-      <ul class="list">
-        <li v-for="c in filteredContestants" :key="c.id" class="item">
-          <div class="item-head">
-            <strong>#{{ c.contestantNumber }} — {{ c.name }}</strong>
-            <span class="badge" :class="c.status === 'Approved' ? 'approved' : 'review'">{{ c.status }}</span>
-          </div>
-          <p>{{ c.bio || 'No bio yet.' }}</p>
-          <small>ID {{ c.id }}</small>
-          <div class="row">
-            <button @click="startEdit(c)">Edit</button>
-            <button class="danger" @click="onDelete(c)">Delete</button>
-          </div>
-        </li>
-      </ul>
-      <p v-if="!loading && filteredContestants.length === 0">No contestants match this filter.</p>
+    <!-- Error prompt card: errors are no longer an inline banner. They open
+         as a centered prompt over everything else, so they cannot be missed
+         or scrolled past. OK (or clicking the dimmed background) dismisses
+         it and returns to whatever was open — a failed save keeps the form
+         open underneath, so the number can be fixed and retried. -->
+    <section v-if="error" class="modal-overlay error-overlay" role="alertdialog" aria-modal="true" aria-label="Error" @click.self="error = ''">
+      <div class="card modal-card error-card">
+        <h2>Something went wrong</h2>
+        <p>{{ error }}</p>
+        <div class="row">
+          <button @click="error = ''">OK</button>
+        </div>
+      </div>
     </section>
-  </main>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -90,9 +111,10 @@ const filteredContestants = computed(() => {
 function showError(e: unknown, fallback: string) {
   // $fetch errors carry the backend body in e.data when present.
   // Most errors are JSON { error: "..." } — a duplicate number arrives
-  // as a 409 with "contestantNumber already in use". A malformed body
+  // as a 409 with "Contestant number already in use". A malformed body
   // (for example an invalid status) arrives as plain text with a 422,
   // so handle a string body too instead of falling back blindly.
+  // Setting error opens the error prompt card; it does not close the form.
   const data = (e as { data?: unknown })?.data
   if (typeof data === 'string' && data.trim()) {
     error.value = data.length > 300 ? data.slice(0, 300) : data
@@ -203,9 +225,14 @@ onMounted(refresh)
 .filters button.active { background: #5b21b6; color: #fff; }
 .count { color: #555; font-size: 0.9rem; }
 .card { border: 1px solid #ddd; border-radius: 12px; padding: 1rem; background: #fff; }
-.form-card { flex-shrink: 0; max-height: 46dvh; overflow-y: auto; }
 .list-card { flex: 1; min-height: 0; overflow-y: auto; }
 .list-card h2 { margin-top: 0; }
+/* Prompt cards: centered modal over the page, list visible behind the dim. */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; z-index: 10; font-family: system-ui, sans-serif; color: #1c1c28; }
+.modal-overlay.error-overlay { z-index: 20; }
+.modal-card { width: 100%; max-width: 480px; max-height: 90dvh; overflow-y: auto; }
+.modal-card h2 { margin-top: 0; }
+.error-card { max-width: 420px; }
 label { display: block; margin: 0.6rem 0; font-weight: 600; }
 input, textarea, select { display: block; width: 100%; margin-top: 0.3rem; padding: 0.6rem; border: 1px solid #bbb; border-radius: 8px; font: inherit; box-sizing: border-box; }
 .row { display: flex; gap: 0.6rem; margin-top: 0.8rem; }
@@ -219,5 +246,4 @@ button:disabled { opacity: 0.6; }
 .badge { font-size: 0.8rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 999px; white-space: nowrap; }
 .badge.review { background: #fef3c7; color: #92400e; }
 .badge.approved { background: #dcfce7; color: #166534; }
-.error { background: #fee2e2; border: 1px solid #fca5a5; padding: 0.8rem; border-radius: 8px; margin: 0; flex-shrink: 0; }
 </style>
