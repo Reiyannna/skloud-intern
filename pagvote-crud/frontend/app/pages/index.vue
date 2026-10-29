@@ -2,7 +2,7 @@
   <div>
     <main class="wrap">
       <header class="header">
-        <h1>Contestants</h1>
+        <h1>Contestant Manager</h1>
         <p class="sub">Simple CRUD demo — Rust + Axum backend, Nuxt frontend. Data is in-memory, so restarting the backend restores the 3 seed contestants.</p>
       </header>
 
@@ -18,6 +18,7 @@
 
       <section class="card list-card">
         <h2>Contestants</h2>
+        <div class="list-scroll">
         <p v-if="loading">Loading…</p>
         <ul class="list">
           <li v-for="c in filteredContestants" :key="c.id" class="item">
@@ -34,6 +35,7 @@
           </li>
         </ul>
         <p v-if="!loading && filteredContestants.length === 0">No contestants match this filter.</p>
+      </div>
       </section>
     </main>
 
@@ -225,8 +227,11 @@ onMounted(refresh)
 .filters button.active { background: #5b21b6; color: #fff; }
 .count { color: #555; font-size: 0.9rem; }
 .card { border: 1px solid #ddd; border-radius: 12px; padding: 1rem; background: #fff; }
-.list-card { flex: 1; min-height: 0; overflow-y: auto; }
-.list-card h2 { margin-top: 0; }
+/* The card header stays fixed: only .list-scroll scrolls, so the
+   "Contestants" heading never scrolls away with the list. */
+.list-card { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.list-card h2 { margin-top: 0; flex-shrink: 0; }
+.list-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 /* Prompt cards: centered modal over the page, list visible behind the dim. */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; z-index: 10; font-family: system-ui, sans-serif; color: #1c1c28; }
 .modal-overlay.error-overlay { z-index: 20; }
